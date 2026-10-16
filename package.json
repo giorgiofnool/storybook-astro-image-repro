@@ -1,0 +1,15 @@
+{
+  "name": "storybook-astro-image-repro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "storybook": "storybook dev -p 6070",
+    "build-storybook": "storybook build"
+  },
+  "devDependencies": {
+    "@storybook-astro/framework": "1.12.0",
+    "@storybook/builder-vite": "10.6.1",
+    "astro": "7.4.0",
+    "storybook": "10.6.1"
+  }
+}
