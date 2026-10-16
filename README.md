@@ -55,3 +55,26 @@ export function setConfiguredImageService(service) { /* … */ }
 ```
 
 So the injected service is ignored, the passthrough service from the generated config is used, and its `/_image` URLs are not served by Storybook.
+
+## Proposed fix (proof of concept)
+
+This branch applies [`patches/@storybook-astro+framework+1.12.0.patch`](patches/@storybook-astro+framework+1.12.0.patch) with `patch-package` on `npm install`. It patches the published `dist/`, so it only demonstrates the idea; the change in the framework sources would be:
+
+- export the object that `ensureAstroPassthroughImageService()` (`src/astroImageService.ts`) assigns to `globalThis.astroAsset.imageService` as the default export of its own module;
+- where the Astro config is built today with `image: { service: passthroughImageService() }` (the Vite SSR server and the static-build prerender), pass that module instead:
+
+```js
+image: { service: { entrypoint: fileURLToPath(new URL('./image-service.js', import.meta.url)), config: {} } }
+```
+
+Astro then loads the service through `virtual:image-service`, its supported path, so it no longer depends on the global being read.
+
+| | 7.4.0, unpatched | 7.4.0, patched | 7.3.5, patched |
+| --- | --- | --- | --- |
+| `<img src>` in `storybook dev` | `/_image?…` | `/@fs/…` | `/@fs/…` |
+| `GET` of that URL | 404 | 200 | 200 |
+| `<img src>` in `storybook build` | `/_image?…` | `/@fs/…` | `/@fs/…` |
+
+Verified only in `storybook dev` and `storybook build` with this project. Not verified: server render mode, the Vitest integration, Astro 5 and 6. The current global injection exists because `import("virtual:image-service")` failed under Vite's module runner in some contexts, so those are the cases to check.
+
+The `/@fs/` URLs in the static build are a separate, known problem (#186).

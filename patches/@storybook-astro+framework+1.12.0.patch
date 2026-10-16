@@ -1,0 +1,76 @@
+diff --git a/node_modules/@storybook-astro/framework/dist/chunk-TQAZ6V7Y.js b/node_modules/@storybook-astro/framework/dist/chunk-TQAZ6V7Y.js
+index 65ce25f..0cf482b 100644
+--- a/node_modules/@storybook-astro/framework/dist/chunk-TQAZ6V7Y.js
++++ b/node_modules/@storybook-astro/framework/dist/chunk-TQAZ6V7Y.js
+@@ -669,7 +669,7 @@ async function createViteServer(integrations, resolveFrom = process.cwd(), fonts
+       // Use the passthrough image service so nested components that use <Image>
+       // from astro:assets render as plain <img> tags without triggering image
+       // optimization (which fails in the Storybook SSR context).
+-      image: { service: passthroughImageService() }
++      image: { service: { entrypoint: fileURLToPath(new URL("./image-service.js", import.meta.url)), config: {} } }
+     }
+   )({ mode: "development", command: "serve" });
+   const serverConfig = {
+diff --git a/node_modules/@storybook-astro/framework/dist/image-service.js b/node_modules/@storybook-astro/framework/dist/image-service.js
+new file mode 100644
+index 0000000..16fd7c9
+--- /dev/null
++++ b/node_modules/@storybook-astro/framework/dist/image-service.js
+@@ -0,0 +1,44 @@
++// The service ensureAstroPassthroughImageService() injects through
++// globalThis.astroAsset, as a module Astro can load from `image.service.entrypoint`.
++export default {
++  propertiesToHash: ["src"],
++  validateOptions(options) {
++    return options;
++  },
++  getURL(options) {
++    const src = options.src;
++    if (src != null && typeof src === "object" && "src" in src && typeof src.src === "string") {
++      return src.src;
++    }
++    return typeof src === "string" ? src : "";
++  },
++  getHTMLAttributes(options) {
++    const {
++      src,
++      width,
++      height,
++      format,
++      quality,
++      densities,
++      widths,
++      formats,
++      layout,
++      priority,
++      fit,
++      position,
++      background,
++      ...attrs
++    } = options;
++    const srcObject = src != null && typeof src === "object" ? src : null;
++    return {
++      ...attrs,
++      width: width ?? srcObject?.width,
++      height: height ?? srcObject?.height,
++      loading: attrs.loading ?? "lazy",
++      decoding: attrs.decoding ?? "async"
++    };
++  },
++  getSrcSet() {
++    return [];
++  }
++};
+diff --git a/node_modules/@storybook-astro/framework/dist/preset.js b/node_modules/@storybook-astro/framework/dist/preset.js
+index fc95676..59a6144 100644
+--- a/node_modules/@storybook-astro/framework/dist/preset.js
++++ b/node_modules/@storybook-astro/framework/dist/preset.js
+@@ -428,7 +428,7 @@ async function createStorySsrViteServer(options) {
+       integrations: await Promise.all(
+         options.integrations.map((integration) => integration.loadIntegration(options.resolveFrom))
+       ),
+-      image: { service: passthroughImageService() }
++      image: { service: { entrypoint: fileURLToPath(new URL("./image-service.js", import.meta.url)), config: {} } }
+     }
+   )({
+     mode: "production",
