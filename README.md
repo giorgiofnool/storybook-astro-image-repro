@@ -55,3 +55,5 @@ export function setConfiguredImageService(service) { /* … */ }
 ```
 
 So the injected service is ignored, the passthrough service from the generated config is used, and its `/_image` URLs are not served by Storybook.
+
+A proof-of-concept fix is on the [`fix`](../../tree/fix) branch.
